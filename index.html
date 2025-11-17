@@ -1,0 +1,1009 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Métodos Numéricos - SOR & Gradiente Conjugado</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        :root {
+            --primary: #2a9d8f;
+            --secondary: #1d7874;
+            --accent: #e76f51;
+            --success: #2a9d8f;
+            --light: #f1faee;
+            --dark: #264653;
+            --gradient: linear-gradient(135deg, #2a9d8f, #1d7874);
+            --card-shadow: 0 10px 30px rgba(42, 157, 143, 0.15);
+            --hover-shadow: 0 15px 40px rgba(42, 157, 143, 0.25);
+        }
+        
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        }
+        
+        body {
+            background: linear-gradient(135deg, #f1faee 0%, #e9f5db 100%);
+            color: var(--dark);
+            line-height: 1.6;
+            min-height: 100vh;
+            padding: 20px;
+        }
+        
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+        }
+        
+        header {
+            text-align: center;
+            margin-bottom: 40px;
+            padding: 30px;
+            background: var(--gradient);
+            color: white;
+            border-radius: 20px;
+            box-shadow: var(--card-shadow);
+            position: relative;
+            overflow: hidden;
+        }
+        
+        header::before {
+            content: "";
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: url('data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100" width="100" height="100" opacity="0.1"><defs><pattern id="grid" width="10" height="10" patternUnits="userSpaceOnUse"><path d="M 10 0 L 0 0 0 10" fill="none" stroke="white" stroke-width="0.5"/></pattern></defs><rect width="100" height="100" fill="url(%23grid)"/></svg>');
+        }
+        
+        h1 {
+            font-size: 3rem;
+            margin-bottom: 10px;
+            font-weight: 700;
+            position: relative;
+        }
+        
+        .subtitle {
+            font-size: 1.3rem;
+            opacity: 0.9;
+            font-weight: 300;
+            max-width: 700px;
+            margin: 0 auto;
+            position: relative;
+        }
+        
+        .example-badge {
+            display: inline-block;
+            background: var(--accent);
+            color: white;
+            padding: 8px 15px;
+            border-radius: 20px;
+            font-size: 0.9rem;
+            margin-top: 15px;
+            cursor: pointer;
+            transition: all 0.3s;
+            border: none;
+        }
+        
+        .example-badge:hover {
+            transform: scale(1.05);
+            background: #e85c3a;
+        }
+        
+        .methods-container {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 30px;
+            margin-bottom: 40px;
+        }
+        
+        .method-card {
+            flex: 1;
+            min-width: 350px;
+            background: white;
+            border-radius: 20px;
+            padding: 30px;
+            box-shadow: var(--card-shadow);
+            transition: all 0.3s ease;
+            border-top: 5px solid var(--primary);
+            position: relative;
+            overflow: hidden;
+        }
+        
+        .method-card::before {
+            content: "";
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            height: 5px;
+            background: var(--gradient);
+        }
+        
+        .method-card:hover {
+            transform: translateY(-10px);
+            box-shadow: var(--hover-shadow);
+        }
+        
+        .method-title {
+            color: var(--primary);
+            padding-bottom: 15px;
+            margin-bottom: 20px;
+            font-size: 1.8rem;
+            font-weight: 600;
+            border-bottom: 2px solid #e9f5db;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+        
+        .method-title i {
+            color: var(--accent);
+        }
+        
+        .input-group {
+            margin-bottom: 20px;
+        }
+        
+        label {
+            display: block;
+            margin-bottom: 8px;
+            font-weight: 600;
+            color: var(--secondary);
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+        
+        input, select, button {
+            width: 100%;
+            padding: 12px 15px;
+            border: 1px solid #cce3de;
+            border-radius: 10px;
+            font-size: 1rem;
+            transition: all 0.3s;
+        }
+        
+        input:focus, select:focus {
+            outline: none;
+            border-color: var(--primary);
+            box-shadow: 0 0 0 3px rgba(42, 157, 143, 0.2);
+        }
+        
+        button {
+            background: var(--gradient);
+            color: white;
+            border: none;
+            cursor: pointer;
+            font-weight: 600;
+            transition: all 0.3s;
+            margin-top: 15px;
+            padding: 15px;
+            font-size: 1.1rem;
+            border-radius: 12px;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            gap: 10px;
+        }
+        
+        button:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 7px 15px rgba(42, 157, 143, 0.4);
+        }
+        
+        button:active {
+            transform: translateY(-1px);
+        }
+        
+        .matrix-input {
+            display: grid;
+            gap: 8px;
+            margin-bottom: 15px;
+        }
+        
+        .matrix-row {
+            display: flex;
+            gap: 8px;
+        }
+        
+        .matrix-cell {
+            flex: 1;
+        }
+        
+        .matrix-cell input {
+            text-align: center;
+            font-weight: 600;
+        }
+        
+        .matrix-header {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 10px;
+        }
+        
+        .matrix-title {
+            font-weight: 600;
+            color: var(--secondary);
+        }
+        
+        .results {
+            background: white;
+            border-radius: 20px;
+            padding: 30px;
+            box-shadow: var(--card-shadow);
+            margin-top: 20px;
+            border-top: 5px solid var(--success);
+        }
+        
+        .results h2 {
+            color: var(--primary);
+            margin-bottom: 20px;
+            font-size: 1.8rem;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+        
+        .iteration-table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 20px;
+            border-radius: 10px;
+            overflow: hidden;
+            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.05);
+        }
+        
+        .iteration-table th, .iteration-table td {
+            border: 1px solid #cce3de;
+            padding: 12px 15px;
+            text-align: center;
+        }
+        
+        .iteration-table th {
+            background: var(--gradient);
+            color: white;
+            font-weight: 600;
+        }
+        
+        .iteration-table tr:nth-child(even) {
+            background-color: #f8f9fa;
+        }
+        
+        .iteration-table tr:hover {
+            background-color: #e9f5db;
+        }
+        
+        .solution {
+            margin-top: 25px;
+            padding: 20px;
+            background: linear-gradient(135deg, #f1faee, #e9f5db);
+            border-radius: 15px;
+            border-left: 5px solid var(--success);
+        }
+        
+        .solution h3 {
+            color: var(--success);
+            margin-bottom: 15px;
+            font-size: 1.5rem;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+        
+        .solution-values {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 15px;
+        }
+        
+        .solution-value {
+            background: white;
+            padding: 15px;
+            border-radius: 10px;
+            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.05);
+            flex: 1;
+            min-width: 120px;
+            text-align: center;
+            font-weight: 600;
+            color: var(--secondary);
+            border-top: 3px solid var(--success);
+        }
+        
+        .verification {
+            margin-top: 25px;
+            padding: 20px;
+            background: linear-gradient(135deg, #fff8f6, #ffebe6);
+            border-radius: 15px;
+            border-left: 5px solid var(--accent);
+        }
+        
+        .verification h3 {
+            color: var(--accent);
+            margin-bottom: 15px;
+            font-size: 1.5rem;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+        
+        .verification-values {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 15px;
+        }
+        
+        .verification-value {
+            background: white;
+            padding: 15px;
+            border-radius: 10px;
+            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.05);
+            flex: 1;
+            min-width: 200px;
+        }
+        
+        .method-info {
+            background: #e9f5db;
+            padding: 15px;
+            border-radius: 10px;
+            margin-bottom: 20px;
+            border-left: 4px solid var(--primary);
+        }
+        
+        .method-info p {
+            margin: 0;
+            color: var(--secondary);
+            font-size: 0.95rem;
+        }
+        
+        .tab-container {
+            display: flex;
+            margin-bottom: 20px;
+            background: white;
+            border-radius: 12px;
+            padding: 5px;
+            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.05);
+        }
+        
+        .tab {
+            flex: 1;
+            padding: 12px;
+            text-align: center;
+            cursor: pointer;
+            border-radius: 10px;
+            font-weight: 600;
+            transition: all 0.3s;
+        }
+        
+        .tab.active {
+            background: var(--gradient);
+            color: white;
+        }
+        
+        .tab-content {
+            display: none;
+        }
+        
+        .tab-content.active {
+            display: block;
+        }
+        
+        @media (max-width: 768px) {
+            .methods-container {
+                flex-direction: column;
+            }
+            
+            .method-card {
+                min-width: 100%;
+            }
+            
+            h1 {
+                font-size: 2.2rem;
+            }
+            
+            .solution-values, .verification-values {
+                flex-direction: column;
+            }
+        }
+        
+        .loading {
+            display: none;
+            text-align: center;
+            padding: 20px;
+        }
+        
+        .loading-spinner {
+            border: 5px solid #f3f3f3;
+            border-top: 5px solid var(--primary);
+            border-radius: 50%;
+            width: 50px;
+            height: 50px;
+            animation: spin 1s linear infinite;
+            margin: 0 auto 15px;
+        }
+        
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+        
+        .success-message {
+            background: #d4edda;
+            color: #155724;
+            padding: 12px;
+            border-radius: 8px;
+            margin-top: 15px;
+            display: none;
+        }
+        
+        .warning-message {
+            background: #fff3cd;
+            color: #856404;
+            padding: 12px;
+            border-radius: 8px;
+            margin-top: 15px;
+            display: none;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1><i class="fas fa-calculator"></i> Métodos Numéricos</h1>
+            <p class="subtitle">Resuelve sistemas de ecuaciones lineales usando los métodos SOR (sobrerrelajación sucesiva) y del Gradiente Conjugado</p>
+            <button class="example-badge" id="load-example">
+                <i class="fas fa-hard-hat"></i> Cargar Ejemplo de Costos de Construcción
+            </button>
+        </header>
+        
+        <div class="tab-container">
+            <div class="tab active" data-tab="sor">Método SOR</div>
+            <div class="tab" data-tab="cg">Gradiente Conjugado</div>
+        </div>
+        
+        <div class="methods-container">
+            <div class="method-card tab-content active" id="sor-tab">
+                <h2 class="method-title"><i class="fas fa-sync-alt"></i> Método SOR</h2>
+                
+                <div class="method-info">
+                    <p>El método SOR (Successive Over-Relaxation) es una variante del método de Gauss-Seidel que acelera la convergencia mediante un factor de relajación ω. Valores típicos están entre 1.0 y 1.9.</p>
+                </div>
+                
+                <div class="input-group">
+                    <label for="sor-size"><i class="fas fa-expand-arrows-alt"></i> Tamaño de la matriz (n):</label>
+                    <input type="number" id="sor-size" min="2" max="10" value="3">
+                </div>
+                
+                <div class="input-group">
+                    <label for="sor-omega"><i class="fas fa-tachometer-alt"></i> Factor de relajación (ω):</label>
+                    <input type="number" id="sor-omega" step="0.1" min="0.1" max="1.9" value="1.2">
+                </div>
+                
+                <div class="input-group">
+                    <label for="sor-tolerance"><i class="fas fa-bullseye"></i> Tolerancia:</label>
+                    <input type="number" id="sor-tolerance" step="0.0001" value="0.0001">
+                </div>
+                
+                <div class="input-group">
+                    <label for="sor-max-iter"><i class="fas fa-redo"></i> Máximo de iteraciones:</label>
+                    <input type="number" id="sor-max-iter" value="100">
+                </div>
+                
+                <div id="sor-matrix-container">
+                    <!-- La matriz se generará dinámicamente aquí -->
+                </div>
+                
+                <button id="sor-calculate"><i class="fas fa-play-circle"></i> Calcular con SOR</button>
+                
+                <div class="loading" id="sor-loading">
+                    <div class="loading-spinner"></div>
+                    <p>Calculando solución...</p>
+                </div>
+                
+                <div class="success-message" id="sor-success">
+                    <i class="fas fa-check-circle"></i> Cálculo completado exitosamente
+                </div>
+            </div>
+            
+            <div class="method-card tab-content" id="cg-tab">
+                <h2 class="method-title"><i class="fas fa-project-diagram"></i> Método del Gradiente Conjugado</h2>
+                
+                <div class="method-info">
+                    <p>El método del Gradiente Conjugado es un algoritmo iterativo para resolver sistemas de ecuaciones lineales con matrices simétricas y definidas positivas. Es especialmente eficiente para matrices grandes y dispersas.</p>
+                </div>
+                
+                <div class="input-group">
+                    <label for="cg-size"><i class="fas fa-expand-arrows-alt"></i> Tamaño de la matriz (n):</label>
+                    <input type="number" id="cg-size" min="2" max="10" value="3">
+                </div>
+                
+                <div class="input-group">
+                    <label for="cg-tolerance"><i class="fas fa-bullseye"></i> Tolerancia:</label>
+                    <input type="number" id="cg-tolerance" step="0.0001" value="0.0001">
+                </div>
+                
+                <div class="input-group">
+                    <label for="cg-max-iter"><i class="fas fa-redo"></i> Máximo de iteraciones:</label>
+                    <input type="number" id="cg-max-iter" value="100">
+                </div>
+                
+                <div id="cg-matrix-container">
+                    <!-- La matriz se generará dinámicamente aquí -->
+                </div>
+                
+                <button id="cg-calculate"><i class="fas fa-play-circle"></i> Calcular con Gradiente Conjugado</button>
+                
+                <div class="loading" id="cg-loading">
+                    <div class="loading-spinner"></div>
+                    <p>Calculando solución...</p>
+                </div>
+                
+                <div class="success-message" id="cg-success">
+                    <i class="fas fa-check-circle"></i> Cálculo completado exitosamente
+                </div>
+            </div>
+        </div>
+        
+        <div class="results">
+            <h2><i class="fas fa-chart-line"></i> Resultados</h2>
+            <div id="results-content">
+                <p>Selecciona un método, configura los parámetros y haz clic en calcular para ver los resultados.</p>
+                <p><strong>Ejemplo del informe:</strong> Sistema de costos de construcción con ω=1.2</p>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Datos del ejemplo de costos de construcción
+        const constructionExample = {
+            A: [
+                [4, 1, 1],
+                [1, 5, 2],
+                [1, 2, 3]
+            ],
+            b: [6, 8, 4],
+            x0: [0, 0, 0],
+            omega: 1.2
+        };
+
+        // Generar matrices de entrada
+        function generateMatrixInputs(containerId, sizeInputId) {
+            const container = document.getElementById(containerId);
+            const size = parseInt(document.getElementById(sizeInputId).value);
+            
+            let html = '<div class="matrix-header">';
+            html += '<span class="matrix-title">Matriz A</span>';
+            html += '</div>';
+            html += '<div class="matrix-input">';
+            
+            // Generar matriz A
+            for (let i = 0; i < size; i++) {
+                html += '<div class="matrix-row">';
+                for (let j = 0; j < size; j++) {
+                    const value = (i === j) ? (i + 1) * 2 : 0.1; // Valores por defecto
+                    html += `<div class="matrix-cell"><input type="number" id="${containerId}-a-${i}-${j}" value="${value}" step="0.1"></div>`;
+                }
+                html += '</div>';
+            }
+            
+            html += '</div>';
+            
+            html += '<div class="matrix-header">';
+            html += '<span class="matrix-title">Vector b</span>';
+            html += '</div>';
+            html += '<div class="matrix-input">';
+            
+            // Generar vector b
+            for (let i = 0; i < size; i++) {
+                const value = (i + 1) * 3; // Valores por defecto
+                html += `<div class="matrix-row"><div class="matrix-cell"><input type="number" id="${containerId}-b-${i}" value="${value}" step="0.1"></div></div>`;
+            }
+            
+            html += '</div>';
+            
+            html += '<div class="matrix-header">';
+            html += '<span class="matrix-title">Valores iniciales (opcional)</span>';
+            html += '</div>';
+            html += '<div class="matrix-input">';
+            
+            // Generar valores iniciales
+            for (let i = 0; i < size; i++) {
+                html += `<div class="matrix-row"><div class="matrix-cell"><input type="number" id="${containerId}-x0-${i}" value="0" step="0.1"></div></div>`;
+            }
+            
+            html += '</div>';
+            
+            container.innerHTML = html;
+        }
+
+        // Cargar ejemplo de construcción
+        function loadConstructionExample() {
+            // Configurar SOR
+            document.getElementById('sor-size').value = 3;
+            document.getElementById('sor-omega').value = 1.2;
+            generateMatrixInputs('sor-matrix-container', 'sor-size');
+            
+            // Llenar datos del ejemplo en SOR
+            for (let i = 0; i < 3; i++) {
+                for (let j = 0; j < 3; j++) {
+                    document.getElementById(`sor-matrix-container-a-${i}-${j}`).value = constructionExample.A[i][j];
+                }
+                document.getElementById(`sor-matrix-container-b-${i}`).value = constructionExample.b[i];
+                document.getElementById(`sor-matrix-container-x0-${i}`).value = constructionExample.x0[i];
+            }
+            
+            // Configurar Gradiente Conjugado
+            document.getElementById('cg-size').value = 3;
+            generateMatrixInputs('cg-matrix-container', 'cg-size');
+            
+            // Llenar datos del ejemplo en CG
+            for (let i = 0; i < 3; i++) {
+                for (let j = 0; j < 3; j++) {
+                    document.getElementById(`cg-matrix-container-a-${i}-${j}`).value = constructionExample.A[i][j];
+                }
+                document.getElementById(`cg-matrix-container-b-${i}`).value = constructionExample.b[i];
+                document.getElementById(`cg-matrix-container-x0-${i}`).value = constructionExample.x0[i];
+            }
+            
+            // Mostrar mensaje
+            document.getElementById('results-content').innerHTML = `
+                <p><i class="fas fa-check-circle" style="color: #2a9d8f;"></i> <strong>Ejemplo de costos de construcción cargado:</strong></p>
+                <p>Sistema: 4x + y + z = 6, x + 5y + 2z = 8, x + 2y + 3z = 4</p>
+                <p>Valores iniciales: [0, 0, 0], ω = 1.2</p>
+                <p>Haz clic en "Calcular" para resolver el sistema.</p>
+            `;
+        }
+        
+        // Inicializar matrices al cargar la página
+        document.addEventListener('DOMContentLoaded', function() {
+            generateMatrixInputs('sor-matrix-container', 'sor-size');
+            generateMatrixInputs('cg-matrix-container', 'cg-size');
+            
+            // Cargar ejemplo de construcción
+            loadConstructionExample();
+            
+            // Botón para cargar ejemplo
+            document.getElementById('load-example').addEventListener('click', loadConstructionExample);
+            
+            // Actualizar matrices cuando cambie el tamaño
+            document.getElementById('sor-size').addEventListener('change', function() {
+                generateMatrixInputs('sor-matrix-container', 'sor-size');
+            });
+            
+            document.getElementById('cg-size').addEventListener('change', function() {
+                generateMatrixInputs('cg-matrix-container', 'cg-size');
+            });
+            
+            // Configurar botones de cálculo
+            document.getElementById('sor-calculate').addEventListener('click', calculateSOR);
+            document.getElementById('cg-calculate').addEventListener('click', calculateCG);
+            
+            // Configurar pestañas
+            document.querySelectorAll('.tab').forEach(tab => {
+                tab.addEventListener('click', function() {
+                    const tabId = this.getAttribute('data-tab');
+                    
+                    // Actualizar pestañas activas
+                    document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+                    this.classList.add('active');
+                    
+                    // Actualizar contenido activo
+                    document.querySelectorAll('.tab-content').forEach(content => {
+                        content.classList.remove('active');
+                    });
+                    document.getElementById(`${tabId}-tab`).classList.add('active');
+                });
+            });
+        });
+        
+        // Obtener datos de la matriz desde los inputs
+        function getMatrixData(containerId, size) {
+            const A = [];
+            const b = [];
+            const x0 = [];
+            
+            // Obtener matriz A
+            for (let i = 0; i < size; i++) {
+                A.push([]);
+                for (let j = 0; j < size; j++) {
+                    const value = parseFloat(document.getElementById(`${containerId}-a-${i}-${j}`).value);
+                    A[i].push(value);
+                }
+            }
+            
+            // Obtener vector b
+            for (let i = 0; i < size; i++) {
+                const value = parseFloat(document.getElementById(`${containerId}-b-${i}`).value);
+                b.push(value);
+            }
+            
+            // Obtener valores iniciales
+            for (let i = 0; i < size; i++) {
+                const value = parseFloat(document.getElementById(`${containerId}-x0-${i}`).value);
+                x0.push(value);
+            }
+            
+            return { A, b, x0 };
+        }
+        
+        // Método SOR
+        function calculateSOR() {
+            const size = parseInt(document.getElementById('sor-size').value);
+            const omega = parseFloat(document.getElementById('sor-omega').value);
+            const tolerance = parseFloat(document.getElementById('sor-tolerance').value);
+            const maxIter = parseInt(document.getElementById('sor-max-iter').value);
+            
+            // Mostrar loading
+            document.getElementById('sor-loading').style.display = 'block';
+            document.getElementById('sor-success').style.display = 'none';
+            
+            // Simular procesamiento asíncrono
+            setTimeout(() => {
+                const { A, b, x0 } = getMatrixData('sor-matrix-container', size);
+                
+                // Validar que la matriz sea diagonalmente dominante
+                if (!isDiagonallyDominant(A)) {
+                    showWarning("Advertencia: La matriz no es diagonalmente dominante. La convergencia no está garantizada.");
+                }
+                
+                // Implementación del método SOR
+                let x = [...x0];
+                const iterations = [];
+                
+                for (let k = 0; k < maxIter; k++) {
+                    const x_old = [...x];
+                    let maxError = 0;
+                    
+                    for (let i = 0; i < size; i++) {
+                        let sum1 = 0;
+                        let sum2 = 0;
+                        
+                        for (let j = 0; j < i; j++) {
+                            sum1 += A[i][j] * x[j];
+                        }
+                        
+                        for (let j = i + 1; j < size; j++) {
+                            sum2 += A[i][j] * x_old[j];
+                        }
+                        
+                        const x_new = (1 - omega) * x_old[i] + (omega / A[i][i]) * (b[i] - sum1 - sum2);
+                        const error = Math.abs(x_new - x_old[i]);
+                        
+                        if (error > maxError) {
+                            maxError = error;
+                        }
+                        
+                        x[i] = x_new;
+                    }
+                    
+                    // Guardar iteración para mostrar
+                    iterations.push({
+                        iteration: k + 1,
+                        values: [...x],
+                        error: maxError
+                    });
+                    
+                    // Verificar convergencia
+                    if (maxError < tolerance) {
+                        break;
+                    }
+                }
+                
+                displayResults('SOR', iterations, x, A, b);
+                
+                // Ocultar loading y mostrar éxito
+                document.getElementById('sor-loading').style.display = 'none';
+                document.getElementById('sor-success').style.display = 'block';
+            }, 800);
+        }
+        
+        // Método del Gradiente Conjugado
+        function calculateCG() {
+            const size = parseInt(document.getElementById('cg-size').value);
+            const tolerance = parseFloat(document.getElementById('cg-tolerance').value);
+            const maxIter = parseInt(document.getElementById('cg-max-iter').value);
+            
+            // Mostrar loading
+            document.getElementById('cg-loading').style.display = 'block';
+            document.getElementById('cg-success').style.display = 'none';
+            
+            // Simular procesamiento asíncrono
+            setTimeout(() => {
+                const { A, b, x0 } = getMatrixData('cg-matrix-container', size);
+                
+                // Validar que la matriz sea simétrica y definida positiva
+                if (!isSymmetric(A)) {
+                    showWarning("Advertencia: La matriz no es simétrica. El método del Gradiente Conjugado requiere una matriz simétrica y definida positiva.");
+                }
+                
+                // Implementación del método del Gradiente Conjugado
+                let x = [...x0];
+                let r = vectorSubtract(b, matrixVectorMultiply(A, x));
+                let p = [...r];
+                const iterations = [];
+                
+                for (let k = 0; k < maxIter; k++) {
+                    const Ap = matrixVectorMultiply(A, p);
+                    const alpha = dotProduct(r, r) / dotProduct(p, Ap);
+                    
+                    // Actualizar solución
+                    x = vectorAdd(x, vectorScale(p, alpha));
+                    
+                    // Calcular nuevo residuo
+                    const r_new = vectorSubtract(r, vectorScale(Ap, alpha));
+                    
+                    // Calcular error
+                    const error = vectorNorm(r_new);
+                    
+                    // Guardar iteración para mostrar
+                    iterations.push({
+                        iteration: k + 1,
+                        values: [...x],
+                        error: error
+                    });
+                    
+                    // Verificar convergencia
+                    if (error < tolerance) {
+                        break;
+                    }
+                    
+                    // Actualizar para siguiente iteración
+                    const beta = dotProduct(r_new, r_new) / dotProduct(r, r);
+                    p = vectorAdd(r_new, vectorScale(p, beta));
+                    r = r_new;
+                }
+                
+                displayResults('Gradiente Conjugado', iterations, x, A, b);
+                
+                // Ocultar loading y mostrar éxito
+                document.getElementById('cg-loading').style.display = 'none';
+                document.getElementById('cg-success').style.display = 'block';
+            }, 800);
+        }
+        
+        // Funciones auxiliares para operaciones con vectores y matrices
+        function matrixVectorMultiply(A, x) {
+            const result = [];
+            for (let i = 0; i < A.length; i++) {
+                let sum = 0;
+                for (let j = 0; j < x.length; j++) {
+                    sum += A[i][j] * x[j];
+                }
+                result.push(sum);
+            }
+            return result;
+        }
+        
+        function vectorAdd(v1, v2) {
+            return v1.map((val, i) => val + v2[i]);
+        }
+        
+        function vectorSubtract(v1, v2) {
+            return v1.map((val, i) => val - v2[i]);
+        }
+        
+        function vectorScale(v, scalar) {
+            return v.map(val => val * scalar);
+        }
+        
+        function dotProduct(v1, v2) {
+            return v1.reduce((sum, val, i) => sum + val * v2[i], 0);
+        }
+        
+        function vectorNorm(v) {
+            return Math.sqrt(v.reduce((sum, val) => sum + val * val, 0));
+        }
+        
+        function isDiagonallyDominant(A) {
+            for (let i = 0; i < A.length; i++) {
+                let sum = 0;
+                for (let j = 0; j < A.length; j++) {
+                    if (i !== j) {
+                        sum += Math.abs(A[i][j]);
+                    }
+                }
+                if (Math.abs(A[i][i]) <= sum) {
+                    return false;
+                }
+            }
+            return true;
+        }
+        
+        function isSymmetric(A) {
+            for (let i = 0; i < A.length; i++) {
+                for (let j = 0; j < i; j++) {
+                    if (A[i][j] !== A[j][i]) {
+                        return false;
+                    }
+                }
+            }
+            return true;
+        }
+        
+        function showWarning(message) {
+            const warning = document.createElement('div');
+            warning.className = 'warning-message';
+            warning.innerHTML = `<i class="fas fa-exclamation-triangle"></i> ${message}`;
+            warning.style.display = 'block';
+            
+            document.getElementById('results-content').prepend(warning);
+            
+            // Eliminar advertencia después de 5 segundos
+            setTimeout(() => {
+                warning.remove();
+            }, 5000);
+        }
+        
+        // Mostrar resultados
+        function displayResults(method, iterations, solution, A, b) {
+            const resultsContent = document.getElementById('results-content');
+            
+            let html = `<h2><i class="fas fa-chart-bar"></i> Resultados del Método ${method}</h2>`;
+            
+            // Mostrar solución
+            html += '<div class="solution">';
+            html += '<h3><i class="fas fa-check-circle"></i> Solución:</h3>';
+            html += '<div class="solution-values">';
+            
+            for (let i = 0; i < solution.length; i++) {
+                html += `<div class="solution-value">x<sub>${i}</sub> = ${solution[i].toFixed(6)}</div>`;
+            }
+            
+            html += '</div>';
+            html += '</div>';
+            
+            // Mostrar iteraciones
+            html += '<h3><i class="fas fa-list-ol"></i> Iteraciones:</h3>';
+            html += '<table class="iteration-table">';
+            html += '<tr><th>Iteración</th>';
+            
+            for (let i = 0; i < solution.length; i++) {
+                html += `<th>x<sub>${i}</sub></th>`;
+            }
+            
+            html += '<th>Error</th></tr>';
+            
+            iterations.forEach(iter => {
+                html += '<tr>';
+                html += `<td>${iter.iteration}</td>`;
+                
+                for (let i = 0; i < solution.length; i++) {
+                    html += `<td>${iter.values[i].toFixed(6)}</td>`;
+                }
+                
+                html += `<td>${iter.error.toFixed(6)}</td>`;
+                html += '</tr>';
+            });
+            
+            html += '</table>';
+            
+            // Verificar solución
+            html += '<div class="verification">';
+            html += '<h3><i class="fas fa-check-double"></i> Verificación de la solución:</h3>';
+            html += '<p>Calculando A*x para verificar que sea igual a b:</p>';
+            
+            const verification = matrixVectorMultiply(A, solution);
+            html += '<div class="verification-values">';
+            
+            for (let i = 0; i < verification.length; i++) {
+                const diff = Math.abs(verification[i] - b[i]);
+                const status = diff < 0.001 ? '<i class="fas fa-check" style="color: green;"></i>' : '<i class="fas fa-times" style="color: red;"></i>';
+                
+                html += `<div class="verification-value">`;
+                html += `${status} Fila ${i}: ${verification[i].toFixed(6)} ≈ ${b[i].toFixed(6)} `;
+                html += `(diferencia: ${diff.toFixed(6)})`;
+                html += `</div>`;
+            }
+            
+            html += '</div>';
+            html += '</div>';
+            
+            resultsContent.innerHTML = html;
+        }
+    </script>
+</body>
+</html>
